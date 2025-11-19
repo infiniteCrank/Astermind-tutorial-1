@@ -1,9 +1,15 @@
 // Ensemble Classification Example: Combining ELM and KELM models
 // Note: For testing, you can use julian@astermind.ai, but in production use your own email
-import { ELM, KernelELM } from '@astermind/astermind-elm';
-import { loadPretrained } from '@astermind/astermind-synth';
-import { setupLicense } from '../utils/setupLicense.js';
-import { config } from '../config.js';
+
+// CRITICAL: Set license token BEFORE importing synth library
+const { setupLicense } = await import('../utils/setupLicense.js');
+await setupLicense();
+
+// Now we can safely import the libraries
+const { ELM, KernelELM } = await import('@astermind/astermind-elm');
+const synthModule = await import('@astermind/astermind-synth');
+const { loadPretrained, setLicenseTokenFromString } = synthModule;
+const { config } = await import('../config.js');
 
 /**
  * Ensemble model structure matching the official example
@@ -74,8 +80,15 @@ class EnsembleModel {
 }
 
 async function runEnsembleExample() {
-  // Set up license token from config
-  await setupLicense();
+  // Set license token explicitly (in addition to env var)
+  if (config.licenseToken && config.licenseToken !== 'your-token-here') {
+    try {
+      await setLicenseTokenFromString(config.licenseToken);
+    } catch (error) {
+      // If this fails, env var should still work
+      console.warn('Note: Could not set token via function, using environment variable');
+    }
+  }
   
   console.log('🎯 Ensemble Classification Example\n');
 
@@ -186,7 +199,11 @@ async function runEnsembleExample() {
     
     try {
       const elmPred = elm.predict(testCase, 1)[0];
-      console.log(`  ELM:        ${elmPred.label} (${(elmPred.confidence * 100).toFixed(2)}%)`);
+      const elmConf = elmPred.confidence ?? elmPred.prob ?? 0;
+      const elmPercent = (elmConf != null && !isNaN(elmConf) && isFinite(elmConf)) 
+        ? `${(elmConf * 100).toFixed(2)}%` 
+        : 'N/A';
+      console.log(`  ELM:        ${elmPred.label} (${elmPercent})`);
     } catch (error) {
       console.log(`  ELM:        Error - ${error.message}`);
     }

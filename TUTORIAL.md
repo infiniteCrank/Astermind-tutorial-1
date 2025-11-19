@@ -66,12 +66,17 @@ npm install @astermind/astermind-elm @astermind/astermind-synth
 astermind-elm-tutorial/
 ├── package.json
 ├── TUTORIAL.md
-├── examples/
-│   ├── 01-bootstrap.js
-│   ├── 02-ensemble-classification.js
-│   ├── 03-chained-regression.js
-│   └── 04-test-all.js
-└── README.md
+├── README.md
+├── config.example.js          # Template for config.js
+├── config.js                  # Your license token (gitignored)
+├── utils/
+│   └── setupLicense.js       # License setup utility
+└── examples/
+    ├── 00-check-setup.js
+    ├── 01-bootstrap.js
+    ├── 02-ensemble-classification.js
+    ├── 03-chained-regression.js
+    └── 04-test-all.js
 ```
 
 ---
@@ -93,11 +98,30 @@ curl -X POST "https://license.astermind.ai/v1/trial/create" \
   }'
 ```
 
-After verifying your email, set the token:
+After verifying your email, you can set the token in two ways:
+
+**Option 1: Use config.js (Recommended)**
+
+Copy the example config file:
+```bash
+cp config.example.js config.js
+```
+
+Then edit `config.js` and add your token:
+```javascript
+export const config = {
+  licenseToken: 'your-token-here',
+  synthMode: 'hybrid', // 'retrieval', 'elm', 'hybrid', 'exact', 'premium'
+};
+```
+
+**Option 2: Use environment variable**
 
 ```bash
 export ASTERMIND_LICENSE_TOKEN="your-token-here"
 ```
+
+The environment variable takes precedence if both are set. All examples automatically read from `config.js` or the environment variable.
 
 ### Basic Bootstrap Example
 
@@ -107,12 +131,17 @@ Let's create a bootstrap script that generates synthetic data and trains an ELM 
 // examples/01-bootstrap.js
 import { loadPretrained } from '@astermind/astermind-synth';
 import { ELM } from '@astermind/astermind-elm';
+import { setupLicense } from '../utils/setupLicense.js';
+import { config } from '../config.js';
 
 async function bootstrapELM() {
+  // Set up license token from config (must be done before using synth)
+  await setupLicense();
+  
   console.log('🚀 Bootstrapping ELM with AsterMind Synth...\n');
 
-  // Load pretrained synth model
-  const synth = loadPretrained('hybrid');
+  // Load pretrained synth model (mode from config)
+  const synth = loadPretrained(config.synthMode);
   
   // Wait for initialization
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -160,16 +189,34 @@ async function bootstrapELM() {
 
   // Test predictions
   console.log('🧪 Testing predictions:');
-  const testCases = [
-    await synth.generate('first_name'),
-    await synth.generate('email'),
-    await synth.generate('phone_number')
-  ];
+  const testCases = [];
+  try {
+    testCases.push(await synth.generate('first_name'));
+    testCases.push(await synth.generate('email'));
+    testCases.push(await synth.generate('phone_number'));
+  } catch (error) {
+    // Fallback test cases if synth fails
+    testCases.push('John', 'john@example.com', '555-1234');
+  }
 
   for (const testCase of testCases) {
-    const prediction = elm.predict(testCase, 3);
-    console.log(`  Input: "${testCase}"`);
-    console.log(`  Prediction: ${prediction.map(p => `${p.label} (${(p.confidence * 100).toFixed(2)}%)`).join(', ')}\n`);
+    try {
+      const prediction = elm.predict(testCase, 3);
+      console.log(`  Input: "${testCase}"`);
+      // Handle both 'confidence' and 'prob' properties, and handle NaN
+      const formatted = prediction.map(p => {
+        let conf = p.confidence ?? p.prob;
+        if (conf == null || isNaN(conf) || !isFinite(conf)) {
+          conf = 0;
+        }
+        const percent = conf > 0 ? `${(conf * 100).toFixed(2)}%` : 'N/A';
+        return `${p.label} (${percent})`;
+      }).join(', ');
+      console.log(`  Prediction: ${formatted}\n`);
+    } catch (error) {
+      console.log(`  Input: "${testCase}"`);
+      console.log(`  Error: ${error.message}\n`);
+    }
   }
 
   return elm;
@@ -241,6 +288,8 @@ Let's create an ensemble that combines ELM and KELM models using proper probabil
 // examples/02-ensemble-classification.js
 import { ELM, KernelELM } from '@astermind/astermind-elm';
 import { loadPretrained } from '@astermind/astermind-synth';
+import { setupLicense } from '../utils/setupLicense.js';
+import { config } from '../config.js';
 
 /**
  * Ensemble model structure matching the official implementation.
@@ -305,10 +354,13 @@ class EnsembleModel {
 }
 
 async function runEnsembleExample() {
+  // Set up license token from config (must be done before using synth)
+  await setupLicense();
+  
   console.log('🎯 Ensemble Classification Example\n');
 
-  // Generate training data
-  const synth = loadPretrained('hybrid');
+  // Generate training data (mode from config)
+  const synth = loadPretrained(config.synthMode);
   await new Promise(resolve => setTimeout(resolve, 100));
 
   const categories = ['first_name', 'last_name', 'email', 'phone_number'];
@@ -379,19 +431,39 @@ async function runEnsembleExample() {
   for (const testCase of testCases) {
     console.log(`Input: "${testCase}"`);
     
-    const elmPred = elm.predict(testCase, 1)[0];
-    console.log(`  ELM:        ${elmPred.label} (${(elmPred.confidence * 100).toFixed(2)}%)`);
+    try {
+      const elmPred = elm.predict(testCase, 1)[0];
+      const elmConf = elmPred.confidence ?? elmPred.prob ?? 0;
+      const elmPercent = (elmConf != null && !isNaN(elmConf) && isFinite(elmConf)) 
+        ? `${(elmConf * 100).toFixed(2)}%` 
+        : 'N/A';
+      console.log(`  ELM:        ${elmPred.label} (${elmPercent})`);
+    } catch (error) {
+      console.log(`  ELM:        Error - ${error.message}`);
+    }
     
-    // For KELM, we need to encode and predict
-    const encoded = elm.encoder.encode(testCase);
-    const normalized = elm.encoder.normalize(encoded);
-    const kelmProbs = kelm.predictProbaFromVectors([normalized])[0];
-    const kelmIdx = kelmProbs.indexOf(Math.max(...kelmProbs));
-    const kelmConf = kelmProbs[kelmIdx];
-    console.log(`  KELM:       ${categories[kelmIdx]} (${(kelmConf * 100).toFixed(2)}%)`);
+    try {
+      // For KELM, we need to encode and predict
+      const encoded = elm.encoder.encode(testCase);
+      const normalized = elm.encoder.normalize(encoded);
+      const kelmProbs = kelm.predictProbaFromVectors([normalized])[0];
+      const kelmIdx = kelmProbs.indexOf(Math.max(...kelmProbs));
+      const kelmConf = kelmProbs[kelmIdx];
+      console.log(`  KELM:       ${categories[kelmIdx]} (${(kelmConf * 100).toFixed(2)}%)`);
+    } catch (error) {
+      console.log(`  KELM:       Error - ${error.message}`);
+    }
     
-    const ensemblePred = ensemble.predict(testCase, 1)[0];
-    console.log(`  Ensemble:   ${ensemblePred.label} (${(ensemblePred.confidence * 100).toFixed(2)}%)`);
+    try {
+      const ensemblePred = ensemble.predict(testCase, 1)[0];
+      const ensConf = ensemblePred.prob ?? ensemblePred.confidence ?? 0;
+      const ensPercent = (ensConf != null && !isNaN(ensConf) && isFinite(ensConf))
+        ? `${(ensConf * 100).toFixed(2)}%`
+        : 'N/A';
+      console.log(`  Ensemble:   ${ensemblePred.label} (${ensPercent})`);
+    } catch (error) {
+      console.log(`  Ensemble:   Error - ${error.message}`);
+    }
     console.log('');
   }
 
@@ -460,6 +532,8 @@ Consider a scenario where you need to predict a complex value that depends on in
 // examples/03-chained-regression.js
 import { ELM } from '@astermind/astermind-elm';
 import { loadPretrained } from '@astermind/astermind-synth';
+import { setupLicense } from '../utils/setupLicense.js';
+import { config } from '../config.js';
 
 /**
  * Chained Regression Example
@@ -471,10 +545,13 @@ import { loadPretrained } from '@astermind/astermind-synth';
  */
 
 async function createChainedRegression() {
+  // Set up license token from config (must be done before using synth)
+  await setupLicense();
+  
   console.log('🔗 Chained Regression Example\n');
 
-  // Generate synthetic training data
-  const synth = loadPretrained('hybrid');
+  // Generate synthetic training data (mode from config)
+  const synth = loadPretrained(config.synthMode);
   await new Promise(resolve => setTimeout(resolve, 100));
 
   // Generate diverse text samples

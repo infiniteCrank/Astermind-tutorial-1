@@ -13,11 +13,16 @@ A comprehensive tutorial on using AsterMind ELM and AsterMind Synth for ensemble
    
    **Option 1: Use config.js (Recommended)**
    
-   Edit `config.js` and replace `'your-token-here'` with your actual token:
+   Copy the example config and add your token:
+   ```bash
+   cp config.example.js config.js
+   ```
+   
+   Then edit `config.js` and replace `'your-token-here'` with your actual token:
    ```javascript
    export const config = {
      licenseToken: 'your-actual-token-here',
-     // ...
+     synthMode: 'hybrid', // 'retrieval', 'elm', 'hybrid', 'exact', 'premium'
    };
    ```
    
@@ -32,7 +37,7 @@ A comprehensive tutorial on using AsterMind ELM and AsterMind Synth for ensemble
    export ASTERMIND_LICENSE_TOKEN="your-token-here"
    ```
    
-   **Note:** The environment variable takes precedence if both are set.
+   **Note:** The environment variable takes precedence if both are set. The `config.js` file is gitignored for security.
    
 
 3. **Check your setup:**

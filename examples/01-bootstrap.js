@@ -1,13 +1,27 @@
 // Bootstrap example: Using AsterMind Synth to generate training data for ELM
 // Note: For testing, you can use julian@astermind.ai, but in production use your own email
-import { loadPretrained } from '@astermind/astermind-synth';
-import { ELM } from '@astermind/astermind-elm';
-import { setupLicense } from '../utils/setupLicense.js';
-import { config } from '../config.js';
+
+// CRITICAL: Set license token BEFORE importing synth library
+// The library checks the environment variable at module initialization
+const { setupLicense } = await import('../utils/setupLicense.js');
+await setupLicense();
+
+// Now we can safely import the synth library
+const synthModule = await import('@astermind/astermind-synth');
+const { loadPretrained, setLicenseTokenFromString } = synthModule;
+const { ELM } = await import('@astermind/astermind-elm');
+const { config } = await import('../config.js');
 
 async function bootstrapELM() {
-  // Set up license token from config
-  await setupLicense();
+  // Set license token explicitly (in addition to env var)
+  if (config.licenseToken && config.licenseToken !== 'your-token-here') {
+    try {
+      await setLicenseTokenFromString(config.licenseToken);
+    } catch (error) {
+      // If this fails, env var should still work
+      console.warn('Note: Could not set token via function, using environment variable');
+    }
+  }
   
   console.log('🚀 Bootstrapping ELM with AsterMind Synth...\n');
 
@@ -78,7 +92,18 @@ async function bootstrapELM() {
     try {
       const prediction = elm.predict(testCase, 3);
       console.log(`  Input: "${testCase}"`);
-      console.log(`  Prediction: ${prediction.map(p => `${p.label} (${(p.confidence * 100).toFixed(2)}%)`).join(', ')}\n`);
+      // Handle both 'confidence' and 'prob' properties, and handle NaN
+      const formatted = prediction.map(p => {
+        // Get confidence/prob value, handling both property names and NaN
+        let conf = p.confidence ?? p.prob;
+        // If value is NaN, undefined, or null, use 0
+        if (conf == null || isNaN(conf) || !isFinite(conf)) {
+          conf = 0;
+        }
+        const percent = conf > 0 ? `${(conf * 100).toFixed(2)}%` : 'N/A';
+        return `${p.label} (${percent})`;
+      }).join(', ');
+      console.log(`  Prediction: ${formatted}\n`);
     } catch (error) {
       console.log(`  Input: "${testCase}"`);
       console.log(`  Error: ${error.message}\n`);
