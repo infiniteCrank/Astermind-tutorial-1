@@ -90,12 +90,9 @@ AsterMind Synth allows you to quickly generate synthetic training data for your 
 AsterMind Synth requires a license token. You can get a free 30-day trial:
 
 ```bash
-curl -X POST "https://license.astermind.ai/v1/trial/create" \
+  curl -X POST "https://c0lgp437u3.execute-api.us-east-1.amazonaws.com/v1/trial/create" \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "your-email@example.com",
-    "product": "astermind-synth"
-  }'
+  -d '{"email": "your-email@example.com", "product": "astermind-synth"}'
 ```
 
 After verifying your email, you can set the token in two ways:
