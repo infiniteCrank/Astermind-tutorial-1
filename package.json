@@ -1,0 +1,28 @@
+{
+  "name": "astermind-elm-tutorial",
+  "version": "1.0.0",
+  "description": "Tutorial on using AsterMind ELM and Synth for ensemble methods and chained regression",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "check": "node examples/00-check-setup.js",
+    "bootstrap": "node examples/01-bootstrap.js",
+    "ensemble": "node examples/02-ensemble-classification.js",
+    "chain": "node examples/03-chained-regression.js",
+    "test": "node examples/04-test-all.js"
+  },
+  "keywords": [
+    "elm",
+    "extreme-learning-machine",
+    "machine-learning",
+    "ensemble",
+    "tutorial"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@astermind/astermind-elm": "^2.1.1",
+    "@astermind/astermind-synth": "^0.1.1"
+  }
+}
+
