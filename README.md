@@ -65,14 +65,22 @@ A comprehensive tutorial on using AsterMind ELM and AsterMind Synth for ensemble
 See [TUTORIAL.md](./TUTORIAL.md) for the complete tutorial covering:
 
 - Bootstrapping projects with AsterMind Synth
-- Creating ensemble models (ELM + KELM)
+- Creating ensemble models (ELM + KELM) with vector-based pipeline
+- Train/test evaluation and accuracy comparison
 - Why ensemble methods outperform standalone models
 - Chaining ELMs for complex regression tasks
 
+The ensemble example demonstrates:
+- Shared encoder for text-to-vector conversion
+- Vector-based training helpers (`trainELMFromVectors`, `trainKernelELMFromVectors`)
+- Probability fusion for combining model predictions
+- Held-out test set evaluation with accuracy metrics
+
 ## Examples
 
+- `examples/00-check-setup.js` - Verify installation and configuration
 - `examples/01-bootstrap.js` - Using Synth to generate training data
-- `examples/02-ensemble-classification.js` - Ensemble methods for classification
+- `examples/02-ensemble-classification.js` - Ensemble methods (ELM + KELM) with train/test evaluation
 - `examples/03-chained-regression.js` - Chained ELMs for regression
 - `examples/04-test-all.js` - Run all examples
 
