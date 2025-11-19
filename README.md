@@ -29,9 +29,11 @@ A comprehensive tutorial on using AsterMind ELM and AsterMind Synth for ensemble
    **Option 2: Use environment variable**
    ```bash
    # Get a free 30-day trial token
-   curl -X POST "https://license.astermind.ai/v1/trial/create" \
-     -H "Content-Type: application/json" \
-     -d '{"email": "your-email@example.com", "product": "astermind-synth"}'
+
+   curl -X POST "https://c0lgp437u3.execute-api.us-east-1.amazonaws.com/v1/trial/create" \
+      -H "Content-Type: application/json" \
+      -d '{"email": "your-email@example.com", "product": "astermind-synth"}'
+
    
    # After verifying email, set the token
    export ASTERMIND_LICENSE_TOKEN="your-token-here"

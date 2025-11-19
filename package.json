@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@astermind/astermind-elm": "^2.1.1",
-    "@astermind/astermind-synth": "0.1.6"
+    "@astermind/astermind-synth": "0.1.7"
   }
 }
 
